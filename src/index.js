@@ -1,240 +1,139 @@
-import * as THREE from "three";
+import { Leva } from "leva";
+import { useControls } from "leva";
 import { createRoot } from "react-dom/client";
-import {
-  Suspense,
-  useState,
-  useRef,
-  useEffect,
-  useLayoutEffect,
-  useMemo,
-  createRef,
-} from "react";
-import { Canvas, useLoader, useFrame, useThree } from "@react-three/fiber";
-import { SVGLoader } from "three-stdlib";
-import {
-  MapControls,
-  useHelper,
-  OrthographicCamera,
-  PerspectiveCamera,
-  OrbitControls,
-} from "@react-three/drei";
-import { defaultCursor, hoveredCursor } from "./cursor";
+import { Suspense, useEffect } from "react";
+import { Canvas, useThree } from "@react-three/fiber";
+import { Environment, ContactShadows } from "@react-three/drei";
+import { TextureLoader } from "three";
+import { ArrayOfMapModels } from "./mapModel/arrayOfItems";
 import "./styles.css";
 
-// Shader Try
-import { fragment, vertex } from "./shaders";
-const uniforms = {
-  uTime: { value: 1 },
-  uAmplitude: { value: 0.25 },
-  uWaveLength: { value: 5 },
-  vUvScale: { value: new THREE.Vector2(0, 0) },
-  // uTexture: { value: texture },
-};
-// END TEST
+export const cameraPosition = [0, 0.4, 2.3];
 
-const MAP_URL = "/tinyMap.svg";
-// const MAP_URL = "/map.svg";
-// const MAP_URL = "/mapNoLabels.svg";
-
-const initialZoom = 0.7;
-const animatedMeshRef = createRef();
-
-function StateComponent({
-  color,
-  shape,
-  fillOpacity,
-  onClick,
-  stateId,
-  isVisible,
-  scale,
-}) {
-  const stateComponentWrapperRef = useRef();
-  const [hovered, hover] = useState(false);
-
-  console.log(stateComponentWrapperRef.current);
-
-  useEffect(
-    () =>
-      void (document.body.style.cursor = hovered
-        ? `url('${hoveredCursor}'), pointer`
-        : `url('${defaultCursor}'), auto`),
-    [hovered]
-  );
-
-  const extrudeSettings = {
-    steps: 2,
-    depth: 20,
-    bevelEnabled: true,
-    bevelThickness: 1,
-    bevelSize: 1,
-    bevelOffset: 0,
-    bevelSegments: 1,
-  };
-
-  if (!isVisible) return null;
-
-  return (
-    <mesh
-      ref={stateComponentWrapperRef}
-      onPointerOver={(e) => hover(true)}
-      onPointerOut={() => hover(false)}
-      onClick={() => onClick(stateComponentWrapperRef.current, stateId)}
-      scale={scale}
-    >
-      <meshBasicMaterial
-        color={hovered ? "#E31939" : color}
-        opacity={fillOpacity}
-        depthWrite={false}
-        // wireframe={true}
-        transparent
-      />
-      {/* <shapeBufferGeometry args={[shape]} /> */}
-      <extrudeGeometry args={[shape, extrudeSettings]} />
-    </mesh>
-  );
-}
-
-function StatesContainer({ url }) {
-  const statesContainerRef = useRef();
-  const { paths } = useLoader(SVGLoader, url);
-  const [selectedCell, setSelectedCell] = useState(null);
+const Controls = () => {
   const { camera } = useThree();
+  const { position } = useControls({
+    position: {
+      label: "Camera XYZ",
+      value: {
+        x: cameraPosition[0],
+        y: cameraPosition[1],
+        z: cameraPosition[2],
+      },
+      step: 0.1,
+    },
+  });
 
-  const shapes = useMemo(
-    () =>
-      paths.flatMap((p) =>
-        p.toShapes(true).map((shape) => ({
-          shape,
-          color: p.color,
-          fillOpacity: p.userData.style.fillOpacity,
-        }))
-      ),
-    [paths]
-  );
-
-  useLayoutEffect(() => {
-    const sphere = new THREE.Box3()
-      .setFromObject(statesContainerRef.current)
-      .getBoundingSphere(new THREE.Sphere());
-
-    statesContainerRef.current.position.set(
-      -sphere.center.x,
-      -sphere.center.y,
-      0
-    );
-  }, []);
-
-  const handleStateClick = (mesh, id) => {
-    if (selectedCell) {
-      setSelectedCell(null);
-      camera.zoom = initialZoom;
-      camera.updateProjectionMatrix();
-      return;
-    }
-
-    setSelectedCell(id);
-
-    // Calculate the bounding box of the clicked mesh
-    const box = new THREE.Box3().setFromObject(mesh);
-    const center = new THREE.Vector3();
-    box.getCenter(center);
-
-    // console.log({ ...center });
-
-    // Move the camera to focus on the center of the bounding box
-    // camera.position.set(0, 0, 5000);
-    // camera.up.set(0, 0, 1);
-    // camera.position.set(center.x, center.y, camera.z);
-    //
-    // console.log(mesh.position);
-    camera.lookAt(mesh.position);
-
-    // console.log(ref.current.position);
-
-    // camera.zoom = initialZoom * 3;
-    // camera.lookAt(center);
+  useEffect(() => {
+    camera.position.set(position.x, position.y, position.z);
     camera.updateProjectionMatrix();
-  };
+  }, [position]);
+};
 
-  // ~~~ Animations ~~~
-  // useFrame hook to setup wave animation to the map objects (the states)
-  useFrame(({ clock }) => {
-    const time = clock.getElapsedTime();
-    const wave = 0.25 * Math.sin(time) + 1.25; // 1 and 1.5
-    document.querySelector("#debug").innerText = `Wave: ${wave}`;
-
-    console.log(statesContainerRef.current.children.length);
-
-    if (statesContainerRef.current) {
-      statesContainerRef.current.children.forEach((mesh, index) => {
-        const offset = index / 10;
-
-        // mesh.scale.x = wave + offset / 2 - 0.5;
-        // mesh.scale.y = wave + offset / 2 - 0.5;
-        //
-        //
-        // mesh.position.x = wave + offset;
-        // mesh.position.y = wave + offset * 100;
-      });
-    }
+const Lights = () => {
+  const {
+    spotLightColor,
+    spotLightPosition,
+    spotLightAngle,
+    spotLightPenumbra,
+    dirLightColor,
+    dirLightPosition,
+    dirLightIntensity,
+  } = useControls({
+    spotLightColor: {
+      label: "Spot Light Color",
+      value: "#B1142D",
+    },
+    spotLightPosition: {
+      label: "Spot Light XYZ",
+      value: {
+        x: 3.8,
+        y: -22.6,
+        z: -55.8,
+      },
+      step: 0.1,
+    },
+    spotLightAngle: {
+      label: "Spot Light Angle",
+      value: 1,
+      min: 0,
+      max: 1,
+      step: 0.1,
+    },
+    spotLightPenumbra: {
+      label: "Spot Light Penumbra",
+      value: 0,
+      min: 0,
+      max: 1,
+      step: 0.1,
+    },
+    dirLightColor: {
+      label: "Dir Light Color",
+      value: "#B1142D",
+    },
+    dirLightIntensity: {
+      label: "Dir Light Intensity",
+      value: 0.6,
+      min: 0,
+      max: 1,
+      step: 0.1,
+    },
+    dirLightPosition: {
+      label: "Dir Light XYZ",
+      value: {
+        x: 0,
+        y: 0.3,
+        z: 1.1,
+      },
+      step: 0.1,
+    },
   });
 
   return (
-    <group
-      ref={statesContainerRef}
-      // Mirror Map using scale -1
-      scale={[1, -1, 1]}
-      position={[0, 0, 0]}
-    >
-      {shapes.map((props, index) => {
-        return (
-          <StateComponent
-            key={props.shape.uuid}
-            onClick={handleStateClick}
-            stateId={props.shape.uuid}
-            isVisible={!selectedCell || selectedCell === props.shape.uuid}
-            {...props}
-          />
-        );
-      })}
-    </group>
+    <>
+      <ambientLight color={"#E31939"} intensity={1} />
+      <spotLight
+        color={spotLightColor}
+        angle={spotLightAngle}
+        penumbra={spotLightPenumbra}
+        position={[
+          spotLightPosition.x,
+          spotLightPosition.y,
+          spotLightPosition.z,
+        ]}
+        castShadow
+      />
+      <directionalLight
+        color={dirLightColor}
+        intensity={dirLightIntensity}
+        position={[dirLightPosition.x, dirLightPosition.y, dirLightPosition.z]}
+      />
+    </>
   );
-}
+};
 
 function App() {
   return (
-    <Canvas
-      frameloop="always"
-      orthographic
-      shadows
-      dpr={[1, 2]}
-      camera={{
-        position: [0, 0, 5000],
-        zoom: initialZoom,
-        up: [0, 1, 0],
-        far: 10000,
-      }}
-    >
-      <ambientLight />
-      <spotLight
-        angle={0.45}
-        penumbra={0.5}
-        position={[-10, -10, 50]}
-        castShadow
-      />
-
-      {/* Map Component */}
-      <Suspense fallback={null}>
-        <StatesContainer url={MAP_URL} />
-      </Suspense>
-      <MapControls
-        enablePan={false}
-        enableRotate={false}
-        minZoom={initialZoom}
-        maxZoom={1.5}
-      />
-      <OrbitControls />
-    </Canvas>
+    <>
+      <Leva />
+      <Canvas
+        shadows
+        dpr={[1, 2]}
+        camera={{
+          fov: 50,
+          zoom: 1,
+          // position: cameraPosition,
+        }}
+      >
+        <Controls />
+        <Lights />
+        <Suspense fallback={null}>
+          <ArrayOfMapModels />
+        </Suspense>
+        <ContactShadows scale={10} blur={1.5} opacity={1} far={10} />
+        {/* <Environment path="/" files="resting_place_4k.exr" /> */}
+      </Canvas>
+    </>
   );
 }
 

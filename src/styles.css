@@ -9,17 +9,24 @@ body,
   height: 100%;
   margin: 0;
   padding: 0;
+  overflow: hidden;
 }
 
 body {
-  /* background: #f0f0f0; */
   background: #000;
+  background: #6f6c6c;
 }
 
-#debug {
+.debug-menu {
   position: fixed;
   top: 0;
   left: 0;
+  z-index: 1;
   margin: 1rem;
   color: white;
+}
+
+canvas {
+  width: 100vw;
+  height: 100vh;
 }
