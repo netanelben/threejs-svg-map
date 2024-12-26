@@ -4,8 +4,8 @@ import { createRoot } from "react-dom/client";
 import { Suspense, useEffect } from "react";
 import { Canvas, useThree } from "@react-three/fiber";
 import { Environment, ContactShadows } from "@react-three/drei";
-import { TextureLoader } from "three";
-import { ArrayOfMapModels } from "./mapModel/arrayOfItems";
+import { ArrayOfMapModels } from "./components/states-map-model";
+import { Header } from "./components/layout/Header";
 import "./styles.css";
 
 export const cameraPosition = [0, 0.4, 2.3];
@@ -115,6 +115,7 @@ const Lights = () => {
 function App() {
   return (
     <>
+      <Header />
       <Leva />
       <Canvas
         shadows

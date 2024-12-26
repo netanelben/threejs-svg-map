@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from "react";
 import { useGLTF, useAnimations } from "@react-three/drei";
 import { useThree } from "@react-three/fiber";
-import { cameraPosition } from "../index";
+import { cameraPosition } from "../../index";
 import { useControls } from "leva";
 import gsap from "gsap";
 

@@ -1,3 +1,11 @@
+@font-face {
+  font-family: "Trade Gothic LT";
+  font-style: normal;
+  font-weight: normal;
+  src: local("Trade Gothic LT"),
+    url("../public/trade-gothic-lt-1361519976.woff") format("woff");
+}
+
 * {
   box-sizing: border-box;
 }
@@ -10,6 +18,7 @@ body,
   margin: 0;
   padding: 0;
   overflow: hidden;
+  font-family: "Trade Gothic LT";
 }
 
 body {
